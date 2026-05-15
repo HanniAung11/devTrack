@@ -2,10 +2,17 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
 
 
 def main():
     """Run administrative tasks."""
+    backend_dir = Path(__file__).resolve().parent
+    os.chdir(backend_dir)
+    backend_str = str(backend_dir)
+    if backend_str not in sys.path:
+        sys.path.insert(0, backend_str)
+
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     try:
         from django.core.management import execute_from_command_line
@@ -18,5 +25,5 @@ def main():
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

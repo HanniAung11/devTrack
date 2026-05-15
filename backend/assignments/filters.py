@@ -13,6 +13,8 @@ class AssignmentFilter(django_filters.FilterSet):
 
 
 class SubmissionFilter(django_filters.FilterSet):
+    status = django_filters.CharFilter()
+
     class Meta:
         model = Submission
-        fields = ("assignment", "developer")
+        fields = ("assignment", "developer", "status")

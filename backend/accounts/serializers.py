@@ -26,7 +26,14 @@ class DeveloperProfileSerializer(serializers.ModelSerializer):
     batch_name = serializers.CharField(
         source="batch.batch_name", read_only=True, allow_null=True
     )
+    batch_start_date = serializers.DateField(
+        source="batch.start_date", read_only=True, allow_null=True
+    )
+    batch_end_date = serializers.DateField(
+        source="batch.end_date", read_only=True, allow_null=True
+    )
     mentor_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Developer
         fields = (
@@ -37,6 +44,8 @@ class DeveloperProfileSerializer(serializers.ModelSerializer):
             "phone",
             "batch",
             "batch_name",
+            "batch_start_date",
+            "batch_end_date",
             "mentor_name",
             "is_active",
             "joined_at",
@@ -74,15 +83,30 @@ class ProfileUpdateSerializer(serializers.Serializer):
             user.email = email
             user.username = email
             user.save(update_fields=["email", "username"])
-        if hasattr(user, "developer_profile"):
-            dev = user.developer_profile
-            if full_name is not None:
-                dev.full_name = full_name
-            if phone is not None:
-                dev.phone = phone
-            if email is not None:
-                dev.email = email
-            dev.save()
+
+        if getattr(user, "role", None) != User.Role.DEVELOPER:
+            return user
+
+        dev = Developer.objects.filter(user=user).first()
+        if dev is None:
+            name = (full_name or "").strip() or (user.get_full_name() or "").strip()
+            if not name:
+                name = user.email
+            dev = Developer.objects.create(
+                user=user,
+                full_name=name,
+                email=email if email is not None else user.email,
+                phone=(phone or "") if phone is not None else "",
+            )
+            return user
+
+        if full_name is not None:
+            dev.full_name = full_name
+        if phone is not None:
+            dev.phone = phone
+        if email is not None:
+            dev.email = email
+        dev.save()
         return user
 
 

@@ -25,11 +25,13 @@ User = get_user_model()
 def build_profile_payload(user):
     data = {"user": UserPublicSerializer(user).data, "developer": None}
     if getattr(user, "role", None) == User.Role.DEVELOPER:
-        try:
-            dev = user.developer_profile
+        dev = (
+            Developer.objects.filter(user=user)
+            .select_related("batch", "batch__mentor")
+            .first()
+        )
+        if dev is not None:
             data["developer"] = DeveloperProfileSerializer(dev).data
-        except Developer.DoesNotExist:
-            data["developer"] = None
     return data
 
 

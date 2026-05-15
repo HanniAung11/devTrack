@@ -27,15 +27,34 @@ class Assignment(models.Model):
 
 
 class Submission(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending review"
+        ACCEPTED = "ACCEPTED", "Accepted"
+        REJECTED = "REJECTED", "Rejected"
+
     assignment = models.ForeignKey(
         Assignment, on_delete=models.CASCADE, related_name="submissions"
     )
     developer = models.ForeignKey(
         Developer, on_delete=models.CASCADE, related_name="submissions"
     )
-    github_link = models.URLField(max_length=500)
+    github_link = models.CharField(max_length=500)
     notes = models.TextField(blank=True)
-    submitted_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    review_note = models.TextField(blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_submissions",
+    )
+    submitted_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         unique_together = ("assignment", "developer")

@@ -17,6 +17,8 @@ export interface DeveloperProfile {
   phone: string;
   batch: number | null;
   batch_name: string | null;
+  batch_start_date?: string | null;
+  batch_end_date?: string | null;
   mentor_name: string | null;
   is_active: boolean;
   joined_at: string;
@@ -101,6 +103,8 @@ export interface Attendance {
   note: string;
 }
 
+export type SubmissionStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+
 export interface Assignment {
   id: number;
   batch: number;
@@ -113,16 +117,25 @@ export interface Assignment {
   created_at: string;
   submission_count: number;
   is_submitted: boolean;
+  can_submit?: boolean;
+  submission_status?: SubmissionStatus | null;
+  submission_is_late?: boolean | null;
+  submission_id?: number | null;
 }
 
 export interface Submission {
   id: number;
   assignment: number;
+  assignment_title?: string;
+  assignment_due_date?: string;
   developer: number;
   developer_code: string;
   developer_name: string;
   github_link: string;
   notes: string;
+  status: SubmissionStatus;
+  review_note?: string;
+  reviewed_at?: string | null;
   submitted_at: string;
   is_late: boolean;
 }
@@ -157,6 +170,7 @@ export interface AdminDashboardData {
 }
 
 export interface DeveloperDashboardData {
+  needs_profile_setup?: boolean;
   my_batch: {
     name: string;
     mentor: string;

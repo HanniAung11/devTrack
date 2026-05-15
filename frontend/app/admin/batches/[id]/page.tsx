@@ -259,7 +259,7 @@ export default function BatchDetailPage() {
     if (!selectedDevId) return;
     setAssigning(true);
     try {
-      await developerService.update(Number(selectedDevId), { batch_id: id });
+      await developerService.update(Number(selectedDevId), { batch: id });
       toast.success("Developer assigned to batch!");
       setAssignOpen(false);
       void load(); 

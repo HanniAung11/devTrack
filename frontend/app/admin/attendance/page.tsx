@@ -23,6 +23,18 @@ export default function AdminAttendancePage() {
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [marks, setMarks] = useState<Record<number, { status: string; note: string }>>({});
 
+  const todayStr = (() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  })();
+  const selectedSession = sessions.find((s) => s.id === sessionId);
+  const sessionIsFuture = selectedSession
+    ? selectedSession.session_date > todayStr
+    : false;
+
   useEffect(() => {
     void batchService.list().then((d) => setBatches(d.results));
   }, []);
@@ -68,6 +80,10 @@ export default function AdminAttendancePage() {
   const saveAll = async () => {
     if (!sessionId) {
       toast.error("Select a session");
+      return;
+    }
+    if (sessionIsFuture) {
+      toast.error("Cannot save attendance for a future session.");
       return;
     }
     try {
@@ -126,6 +142,7 @@ export default function AdminAttendancePage() {
               {sessions.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.session_date} — {s.title}
+                  {s.session_date > todayStr ? " (future)" : ""}
                 </option>
               ))}
             </select>
@@ -137,6 +154,11 @@ export default function AdminAttendancePage() {
         Summary: <span className="text-emerald-600">{p} Present</span> ·{" "}
         <span className="text-red-600">{a} Absent</span> ·{" "}
         <span className="text-amber-600">{l} Leave</span>
+        {sessionIsFuture ? (
+          <span className="ml-2 text-amber-700">
+            · This session is in the future — marking is disabled until the session date.
+          </span>
+        ) : null}
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
@@ -160,6 +182,7 @@ export default function AdminAttendancePage() {
                       <input
                         type="radio"
                         name={`st-${dev.id}`}
+                        disabled={sessionIsFuture}
                         checked={marks[dev.id]?.status === st}
                         onChange={() =>
                           setMarks((prev) => ({
@@ -173,6 +196,7 @@ export default function AdminAttendancePage() {
                 )}
                 <td className="px-4 py-2">
                   <Input
+                    disabled={sessionIsFuture}
                     value={marks[dev.id]?.note ?? ""}
                     onChange={(e) =>
                       setMarks((prev) => ({
@@ -188,7 +212,11 @@ export default function AdminAttendancePage() {
         </table>
       </div>
 
-      <Button type="button" onClick={() => void saveAll()}>
+      <Button
+        type="button"
+        disabled={sessionIsFuture || !sessionId}
+        onClick={() => void saveAll()}
+      >
         Save attendance
       </Button>
     </div>

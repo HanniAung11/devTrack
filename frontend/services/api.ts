@@ -3,7 +3,48 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "@/store/authStore";
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+/** Flatten DRF / Django-style JSON errors into one readable line for toasts. */
+export function formatDrfErrorMessage(data: unknown): string {
+  if (!data || typeof data !== "object") {
+    return "";
+  }
+  const o = data as Record<string, unknown>;
+  const asStrings = (val: unknown): string[] => {
+    if (typeof val === "string") return [val];
+    if (typeof val === "number" || typeof val === "boolean") return [String(val)];
+    if (Array.isArray(val)) return val.flatMap((x) => asStrings(x));
+    if (val && typeof val === "object") {
+      const rec = val as Record<string, unknown>;
+      if (typeof rec.string === "string") return [rec.string];
+      if (typeof rec.message === "string") return [rec.message];
+    }
+    return [];
+  };
+
+  const fromDetail = asStrings(o.detail);
+  if (fromDetail.length) return fromDetail.join(", ");
+
+  const fromNonField = asStrings(o.non_field_errors);
+  if (fromNonField.length) return fromNonField.join(", ");
+
+  const parts: string[] = [];
+  for (const [key, val] of Object.entries(o)) {
+    if (key === "detail" || key === "non_field_errors") continue;
+    const msgs = asStrings(val);
+    for (const m of msgs) parts.push(`${key}: ${m}`);
+  }
+  return parts.join(" · ");
+}
+
+/** Use same-origin /api in the browser so Next rewrites proxy to Django when env is unset. */
+function resolveApiBaseUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (fromEnv) return fromEnv;
+  if (typeof window !== "undefined") return "";
+  return "http://localhost:8000";
+}
+
+const baseURL = resolveApiBaseUrl();
 
 const api = axios.create({
   baseURL,
@@ -68,14 +109,8 @@ api.interceptors.response.use(
     }
 
     if (typeof window !== "undefined" && error.response?.status !== 401) {
-      const data = error.response?.data as { detail?: string | string[] };
-      const d = data?.detail;
-      const message =
-        typeof d === "string"
-          ? d
-          : Array.isArray(d)
-            ? d.join(", ")
-            : error.message;
+      const data = error.response?.data;
+      const message = formatDrfErrorMessage(data);
       toast.error(message || "Request failed");
     }
 

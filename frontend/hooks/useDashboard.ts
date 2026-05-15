@@ -17,7 +17,25 @@ export function useAdminDashboard() {
       const res = await dashboardService.admin();
       setData(res);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load dashboard");
+      if (typeof e === "object" && e !== null && "response" in e) {
+        const ax = e as { response?: { status?: number; data?: unknown }; message?: string };
+        const status = ax.response?.status;
+        const detail =
+          typeof ax.response?.data === "object" &&
+          ax.response?.data !== null &&
+          "detail" in (ax.response.data as object)
+            ? String((ax.response.data as { detail: unknown }).detail)
+            : "";
+        if (status === 404) {
+          setError(
+            "Dashboard API not found. Start Django on port 8000 (python manage.py runserver) and restart the Next.js dev server."
+          );
+        } else {
+          setError(detail || ax.message || "Failed to load dashboard");
+        }
+      } else {
+        setError(e instanceof Error ? e.message : "Failed to load dashboard");
+      }
     } finally {
       setLoading(false);
     }
@@ -42,7 +60,25 @@ export function useDeveloperDashboard() {
       const res = await dashboardService.developer();
       setData(res);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load dashboard");
+      if (typeof e === "object" && e !== null && "response" in e) {
+        const ax = e as { response?: { status?: number; data?: unknown }; message?: string };
+        const status = ax.response?.status;
+        const detail =
+          typeof ax.response?.data === "object" &&
+          ax.response?.data !== null &&
+          "detail" in (ax.response.data as object)
+            ? String((ax.response.data as { detail: unknown }).detail)
+            : "";
+        if (status === 404) {
+          setError(
+            "Dashboard API not found. Start Django on port 8000 (python manage.py runserver) and restart the Next.js dev server."
+          );
+        } else {
+          setError(detail || ax.message || "Failed to load dashboard");
+        }
+      } else {
+        setError(e instanceof Error ? e.message : "Failed to load dashboard");
+      }
     } finally {
       setLoading(false);
     }

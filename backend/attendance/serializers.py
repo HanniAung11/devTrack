@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import serializers
 
 from developers.serializers import DeveloperMiniSerializer
@@ -45,6 +46,20 @@ class AttendanceWriteSerializer(serializers.ModelSerializer):
             "status",
             "note",
         )
+
+    def validate(self, attrs):
+        session = attrs.get("session")
+        if session is None and self.instance is not None:
+            session = self.instance.session
+        if session is not None:
+            today = timezone.now().date()
+            if session.session_date > today:
+                raise serializers.ValidationError(
+                    {
+                        "session": "Attendance can only be recorded for today or past sessions."
+                    }
+                )
+        return attrs
 
     def create(self, validated_data):
         request = self.context.get("request")

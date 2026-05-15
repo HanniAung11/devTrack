@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { BookOpen, ClipboardList, TrendingUp, UserCheck } from "lucide-react";
 import {
   Bar,
@@ -14,13 +15,36 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/layout/StatCard";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDeveloperDashboard } from "@/hooks/useDashboard";
 import { formatDate } from "@/utils/formatDate";
 
 export default function DeveloperDashboardPage() {
-  const { data, loading } = useDeveloperDashboard();
+  const { data, loading, error, reload } = useDeveloperDashboard();
+
+  if (error && !data) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="My dashboard" />
+        <p className="text-sm text-red-600" role="alert">
+          {error}
+        </p>
+        <p className="text-sm text-zinc-600">
+          Make sure the Django API is running on port 8000, then try again.
+        </p>
+        <div className="flex gap-2">
+          <Button type="button" onClick={() => void reload()}>
+            Retry
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/developer/profile">Open profile</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !data) {
     return (
@@ -47,6 +71,19 @@ export default function DeveloperDashboardPage() {
         title="My dashboard"
         description="Your attendance, batch progress, and assignments."
       />
+
+      {data.needs_profile_setup ? (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+            <p className="text-sm text-amber-900">
+              Complete your profile so DevTrack can load your batch and assignments.
+            </p>
+            <Button size="sm" asChild>
+              <Link href="/developer/profile">Go to profile</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard

@@ -25,6 +25,23 @@ def _date_range_last_days(days: int):
     return start, today
 
 
+def _empty_developer_dashboard(*, needs_profile_setup: bool = False):
+    return {
+        "needs_profile_setup": needs_profile_setup,
+        "my_batch": None,
+        "attendance_percentage": 0.0,
+        "total_present": 0,
+        "total_absent": 0,
+        "total_leave": 0,
+        "attendance_trend": [],
+        "upcoming_sessions": [],
+        "pending_assignments": [],
+        "submitted_assignments": [],
+        "recent_attendance": [],
+        "days_remaining": None,
+    }
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsAdmin])
 def admin_dashboard(request):
@@ -137,10 +154,9 @@ def admin_dashboard(request):
 def developer_dashboard(request):
     if getattr(request.user, "role", None) != CustomUser.Role.DEVELOPER:
         return Response({"detail": "Developer access only."}, status=403)
-    try:
-        dev = request.user.developer_profile
-    except Developer.DoesNotExist:
-        return Response({"detail": "No developer profile."}, status=400)
+    dev = Developer.objects.filter(user=request.user).select_related("batch", "batch__mentor").first()
+    if dev is None:
+        return Response(_empty_developer_dashboard(needs_profile_setup=True))
 
     batch = dev.batch
     my_batch = None
@@ -204,8 +220,18 @@ def developer_dashboard(request):
                 "description": ass.description,
                 "due_date": ass.due_date,
             }
-            if sub:
-                submitted_assignments.append({**ass_data, "submitted_at": sub.submitted_at})
+            if sub and sub.status in (
+                Submission.Status.PENDING,
+                Submission.Status.ACCEPTED,
+            ):
+                submitted_assignments.append(
+                    {
+                        **ass_data,
+                        "submitted_at": sub.submitted_at,
+                        "status": sub.status,
+                        "is_late": sub.is_late,
+                    }
+                )
             else:
                 pending_assignments.append(ass_data)
 
@@ -225,6 +251,7 @@ def developer_dashboard(request):
 
     return Response(
         {
+            "needs_profile_setup": False,
             "my_batch": my_batch,
             "attendance_percentage": attendance_percentage,
             "total_present": present,

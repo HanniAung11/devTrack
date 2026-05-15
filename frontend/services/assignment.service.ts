@@ -39,6 +39,33 @@ export const assignmentService = {
     create: async (body: Partial<Submission> & { assignment: number }) => {
       const { data } = await api.post<Submission>(
         "/api/assignments/submissions/",
+        {
+          assignment: body.assignment,
+          github_link: body.github_link,
+          notes: body.notes ?? "",
+        }
+      );
+      return data;
+    },
+    update: async (
+      id: number,
+      body: { github_link: string; notes?: string }
+    ) => {
+      const { data } = await api.patch<Submission>(
+        `/api/assignments/submissions/${id}/`,
+        {
+          github_link: body.github_link,
+          notes: body.notes ?? "",
+        }
+      );
+      return data;
+    },
+    review: async (
+      id: number,
+      body: { status: "ACCEPTED" | "REJECTED"; review_note?: string }
+    ) => {
+      const { data } = await api.post<Submission>(
+        `/api/assignments/submissions/${id}/review/`,
         body
       );
       return data;
